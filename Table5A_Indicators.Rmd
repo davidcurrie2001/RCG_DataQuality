@@ -1,0 +1,245 @@
+---
+title: "Table 5A Indicators"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+This script will read in the indicators from a consolidated Table5A spreadsheet and then create radar plots of the data.  The original annual reports can be downloaded from <https://datacollection.jrc.ec.europa.eu/wp-np-ar>
+
+
+```{r step_0, include=FALSE}
+# STEP 0) Preparation
+
+# install these packages if you need to
+#install.packages("readxl")
+#install.packages("dplyr")
+#install.packages("fmsb")
+
+# clear everything out of the environment
+rm(list = ls())
+
+# required libraries
+library(readxl)
+library(dplyr)
+library(fmsb)
+library(knitr)
+
+# User function to create a radar plot
+MyPlot <- function(to_plot, title, include_legend=TRUE){
+  
+  to_plot=rbind(rep(4,nrow(to_plot)) , rep(0,nrow(to_plot)) , to_plot[,])
+  
+  # Radar plot
+  colors_border=c( "blue","red1","green", "pink", "orange", "purple" ,"cyan","black", "violet" )
+  radarchart(to_plot,plty=1, pcol=colors_border, plwd=3, title = title, caxislabels = c(0,1,2,3,4), axistype = 1)
+  
+  if (include_legend) {
+    legend(1.4,1,legend = rownames(to_plot[-c(1,2),]), pch=20, col=colors_border,cex=0.5, pt.cex=2)
+  }
+}
+
+```
+
+```{r step_1, include=FALSE}
+
+# STEP 1) Read the data from the Excel spreadsheet
+
+my_data1 <- read_excel('Table5A_withIndicators.xlsx', sheet = 1) # Results
+my_data2 <- read_excel('Table5A_withIndicators.xlsx', sheet = 2) # Definition
+#my_data3 <- read_excel('Table5A_withIndicators.xlsx', sheet = 3) # Readme
+#my_data4 <- read_excel('Table5A_withIndicators.xlsx', sheet = 4) #Austria
+my_data5 <- read_excel('Table5A_withIndicators.xlsx', sheet = 5) # Belgium
+#my_data6 <- read_excel('Table5A_withIndicators.xlsx', sheet = 6) # Bulgaria
+#my_data7 <- read_excel('Table5A_withIndicators.xlsx', sheet = 7) # Croatia
+#my_data8 <- read_excel('Table5A_withIndicators.xlsx', sheet = 8) #Cyprus
+my_data9 <- read_excel('Table5A_withIndicators.xlsx', sheet = 9) # Denmark
+my_data10 <- read_excel('Table5A_withIndicators.xlsx', sheet = 10) # Estonia
+my_data11 <- read_excel('Table5A_withIndicators.xlsx', sheet = 11) # Finland
+my_data12 <- read_excel('Table5A_withIndicators.xlsx', sheet = 12) # France
+my_data13 <- read_excel('Table5A_withIndicators.xlsx', sheet = 13) # Germany
+#my_data14 <- read_excel('Table5A_withIndicators.xlsx', sheet = 14) # Greece
+#my_data15 <- read_excel('Table5A_withIndicators.xlsx', sheet = 15) # Hungary
+my_data16 <- read_excel('Table5A_withIndicators.xlsx', sheet = 16) # Ireland
+#my_data17 <- read_excel('Table5A_withIndicators.xlsx', sheet = 17) # Italy
+my_data18 <- read_excel('Table5A_withIndicators.xlsx', sheet = 18) # Latvia
+my_data19 <- read_excel('Table5A_withIndicators.xlsx', sheet = 19) # Lithuania
+#my_data20 <- read_excel('Table5A_withIndicators.xlsx', sheet = 20) # Malta
+my_data21 <- read_excel('Table5A_withIndicators.xlsx', sheet = 21) # Netherlands
+my_data22 <- read_excel('Table5A_withIndicators.xlsx', sheet = 22) # Poland
+my_data23 <- read_excel('Table5A_withIndicators.xlsx', sheet = 23) # Portugal
+#my_data24 <- read_excel('Table5A_withIndicators.xlsx', sheet = 24) # Romania
+#my_data25 <- read_excel('Table5A_withIndicators.xlsx', sheet = 25) # Slovenia
+my_data26 <- read_excel('Table5A_withIndicators.xlsx', sheet = 26) # Spain
+my_data27 <- read_excel('Table5A_withIndicators.xlsx', sheet = 27) # Sweden
+my_data28 <- read_excel('Table5A_withIndicators.xlsx', sheet = 28) #UK
+
+#View(my_data2)
+
+```
+
+```{r step_2, include=FALSE}
+# STEP 2) Join the data for the countries together and do some tidying up
+
+# These are the columns we are interested in
+positions <- c(1,20:25)
+
+#"Normal" column names - sometimes these are different for specific countries
+UsualColNames <-colnames(my_data9)[positions]
+
+# Differet column positions used for Finland - need to fix first before binding with the other data
+finData <- select(my_data11,c(1,25:30))
+colnames(finData)<-UsualColNames
+
+# First column for IRL has different name
+irlData <- select(my_data16,positions)
+colnames(irlData)<-UsualColNames
+
+# Spain has some records with country as "ES" rather then "ESP" - change this
+espData <- my_data26
+espData$`Table 5A: Quality assurance framework for biological data` <- as.character(espData$`Table 5A: Quality assurance framework for biological data`)
+espData$`Table 5A: Quality assurance framework for biological data`[espData$`Table 5A: Quality assurance framework for biological data`=='ES']<-"ESP"
+
+# Stick all the data frames from each country together
+total_data <- bind_rows(
+  #select(my_data5,positions),
+  select(my_data9,positions),
+  select(my_data10,positions),
+  #select(my_data11,positions), # Differet column positions used for Finland
+  finData,# Differet column positions used for Finland
+  select(my_data12,positions),
+  select(my_data13,positions),
+  #select(my_data16,positions),
+  irlData, # Different column names for Ireland
+  select(my_data18,positions),
+  #select(my_data19,positions),
+  select(my_data21,positions),
+  select(my_data22,positions),
+  select(my_data23,positions),
+  # select(my_data26,positions)
+  espData # Some records have country as "ES" rather than "ESP" - this was fixed
+  #select(my_data27,positions),
+  #select(my_data28,positions)
+  )
+#View(total_data)
+colnames(total_data)=c("MS","SamplingDesign","NonResponses","DataCapture","DataStorage","AccuracyBias","EditImpute")
+
+
+
+
+# Remove the rows we don't want e.g. the column headings and any extra blank rows
+final_data <- total_data[!is.na(total_data$MS),]
+final_data <- final_data [final_data$MS!="MS participating in sampling",]
+final_data <- final_data [final_data$MS!="MS",]
+
+#View(ed_total_data)
+
+#View(final_data)
+
+# Convert factors to numbers
+# Introduces NAs for things that aren't numbers e.g. "?"
+final_data$SamplingDesign <- as.numeric(as.character(final_data$SamplingDesign))
+final_data$NonResponses <- as.numeric(as.character(final_data$NonResponses))
+final_data$DataCapture <- as.numeric(as.character(final_data$DataCapture))
+final_data$DataStorage <- as.numeric(as.character(final_data$DataStorage))
+final_data$AccuracyBias <- as.numeric(as.character(final_data$AccuracyBias))
+final_data$EditImpute <- as.numeric(as.character(final_data$EditImpute))
+
+
+```
+
+
+## Overall mean of the indicators for MS in BS, NA, NSEA RCGs
+
+
+```{r step_3, echo=FALSE}
+
+# STEP 3) Overall mean indicators
+
+MeanTotal <- data.frame(SamplingDesign=c(mean(final_data$SamplingDesign,na.rm = TRUE)), NonResponse=mean(final_data$NonResponses,na.rm = TRUE), DataCapture=mean(final_data$DataCapture,na.rm = TRUE), DataStorage=mean(final_data$DataStorage,na.rm = TRUE), AccuracyBias=mean(final_data$AccuracyBias,na.rm = TRUE), EditImpute=mean(final_data$SamplingDesign,na.rm = TRUE))
+#View(MeanTotal)
+rownames(MeanTotal)<-c("All MS")
+
+# Plot the data
+# Used this order for columns so that the indicators will read in a clockwise direction
+data_to_plot<-MeanTotal[,c(1,6:2)]
+MyPlot(to_plot=data_to_plot,title="Overall mean")
+
+```
+
+## Mean indicators for each MS in BS, NA, NSEA RCGs on single plot
+
+```{r step_4_a, include=FALSE}
+
+# STEP 4) Mean indicators by member states
+
+# Get the means by MS
+MeanByMS <-aggregate(final_data, by=list(final_data$MS),FUN=mean, na.rm=TRUE)
+rownames(MeanByMS)<-MeanByMS$Group.1
+#View(MeanByMS)
+
+```
+
+```{r step_4_b, echo=FALSE}
+# Plot the data
+# Used this order for columns so that the indicators will read in a clockwise direction
+data_to_plot<-MeanByMS[,c(3,8,7,6,5,4)]
+MyPlot(to_plot=data_to_plot,title="Mean by Member State")
+```
+
+## Mean indicators for each MS in BS, NA, NSEA RCGs on seperate plots
+
+```{r step_5, echo=FALSE}
+
+# STEP 5) Mean indicators for each member state on seperate chart
+
+# I just used a for-loop here - I'm sure there's a better way of doing this using the "apply" family of functions
+op <- par(mar=c(1, 2, 2, 1),mfrow=c(3, 2))
+
+for(MSname in rownames(MeanByMS)){
+  #print(MSname)
+  data_to_plot<-MeanByMS[MSname,c(3,8,7,6,5,4)]
+  MyPlot(to_plot=data_to_plot,title=MSname, include_legend = FALSE)
+}
+
+par(op)
+
+```
+
+```{r step_6, echo=FALSE}
+
+# STEP 6) Mean indicators by RCG
+# TODO: come back to this
+
+```
+
+## Appedix 1: Methodology
+
+Table 5A from the Annual Reports of each MS were collated.  Data quality indicators were then defined by considering the columns of the table.  For each row of the table these indicators were assigned a score from 1 - 4 (with 1 being worst and 4 being the best).  The scores were determined using the criteria in the table below.  The mean of these indicators for different groupings (e.g. for all MS) was then calculated to produce the charts in this report.
+
+The aim of these indicators is not to rank the performance of MS against each other but to track how each MS is improving its data quality procedures.  An added benefit will be to demonstrate to MS which information it is useful to provide when completing Table 5A.
+
+
+```{r step_method, echo=FALSE}
+
+#View(my_data2)
+ind_define<-my_data2
+colnames(ind_define)=c("Col1","Indicator","Level 1","Level 2","Level 3","Level 4")
+ind_define<-ind_define[!is.na(ind_define$Indicator),c("Indicator","Level 1","Level 2","Level 3","Level 4")]
+#View(ind_define)
+kable(ind_define,caption = "Indicator definitions")
+
+```
+
+## Appendix 2: Errors
+
+```{r step_show_problems, echo=FALSE}
+
+kable(final_data[!final_data$SamplingDesign %in% c(1,2,3,4)  | !final_data$NonResponses %in% c(1,2,3,4) | !final_data$DataCapture %in% c(1,2,3,4) | !final_data$DataStorage %in% c(1,2,3,4) | !final_data$AccuracyBias %in% c(1,2,3,4) | !final_data$EditImpute %in% c(1,2,3,4),c(1,2,3,4,5,6,7)],caption = 'Entries which do not have a value of 1,2,3, or 4 for the indicators')
+
+```
+
